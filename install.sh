@@ -356,14 +356,23 @@ systemctl start whatsapp-proxy
 info "Запускаем Telegram proxy..."
 systemctl start telegram-proxy
 
-sleep 5
+sleep 8
 
 # ─── Проверка ────────────────────────────────────────────────
 echo ""
 WA_OK=false
 TG_OK=false
-nc -z 127.0.0.1 "$WA_CHAT_PORT" -w3 2>/dev/null && WA_OK=true
-nc -z 127.0.0.1 "$TG_PORT"      -w3 2>/dev/null && TG_OK=true
+nc -z 127.0.0.1 "$WA_CHAT_PORT" -w5 2>/dev/null && WA_OK=true
+nc -z 127.0.0.1 "$TG_PORT"      -w5 2>/dev/null && TG_OK=true
+
+# Дополнительная проверка Telegram DC
+TG_DC_OK=false
+for DC_IP in 149.154.175.50 149.154.167.51 149.154.175.100 91.108.56.100; do
+  if nc -z "$DC_IP" 443 -w3 2>/dev/null; then
+    TG_DC_OK=true
+    break
+  fi
+done
 
 # ─── Итоговый вывод ──────────────────────────────────────────
 echo ""
@@ -373,27 +382,34 @@ echo "  ║                    Установка завершена!           
 echo "  ╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-echo -e "${BOLD}  WhatsApp Proxy${NC}"
+echo -e "${BOLD}  ── WhatsApp Proxy ────────────────────────────────────────────${NC}"
 $WA_OK && echo -e "  ${GREEN}✓ Статус: работает${NC}" || echo -e "  ${RED}✗ Статус: ошибка (проверьте: systemctl status whatsapp-proxy)${NC}"
-echo "  Адрес для подключения: ${WA_DOMAIN}:${WA_CHAT_PORT}"
-echo "  (в настройках WhatsApp: Настройки → Конфиденциальность → Прокси)"
+echo "  Домен:        ${WA_DOMAIN}"
+echo "  Порт Chat:    ${WA_CHAT_PORT}"
+echo "  Порт Media:   ${WA_MEDIA_PORT}"
+echo "  Подключение:  Настройки → Конфиденциальность → Прокси"
+echo -e "  Адрес:        ${CYAN}${WA_DOMAIN}:${WA_CHAT_PORT}${NC}"
 echo ""
 
-echo -e "${BOLD}  Telegram MTProto Proxy${NC}"
+echo -e "${BOLD}  ── Telegram MTProto Proxy ─────────────────────────────────────${NC}"
 $TG_OK && echo -e "  ${GREEN}✓ Статус: работает${NC}" || echo -e "  ${RED}✗ Статус: ошибка (проверьте: systemctl status telegram-proxy)${NC}"
-echo "  Secret: ${TG_SECRET}"
+$TG_DC_OK || echo -e "  ${RED}✗ Серверы Telegram недоступны с этого сервера (провайдер блокирует?)${NC}"
+echo "  Домен:        ${TG_DOMAIN}"
+echo "  Порт:         ${TG_PORT}"
+echo "  Secret:       ${TG_SECRET}"
 echo ""
-echo "  Ссылка для подключения:"
-echo -e "  ${CYAN}https://t.me/proxy?server=${SERVER_IP}&port=${TG_PORT}&secret=${TG_SECRET}${NC}"
+echo "  Ссылки для подключения:"
+echo -e "  ${CYAN}https://t.me/proxy?server=${TG_DOMAIN}&port=${TG_PORT}&secret=${TG_SECRET}${NC}"
+echo -e "  ${CYAN}tg://proxy?server=${TG_DOMAIN}&port=${TG_PORT}&secret=${TG_SECRET}${NC}"
 echo ""
 
-echo -e "${BOLD}  Управление:${NC}"
+echo -e "${BOLD}  ── Управление ─────────────────────────────────────────────────${NC}"
 echo "  systemctl status  whatsapp-proxy telegram-proxy"
 echo "  systemctl restart whatsapp-proxy"
 echo "  systemctl restart telegram-proxy"
 echo "  journalctl -u telegram-proxy -f"
 echo ""
-echo -e "${BOLD}  Конфиги:${NC}"
+echo -e "${BOLD}  ── Конфиги ────────────────────────────────────────────────────${NC}"
 echo "  /opt/messenger-proxy/whatsapp/haproxy.cfg"
 echo "  /opt/messenger-proxy/telegram/config.toml"
 echo ""
