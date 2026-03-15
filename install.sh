@@ -200,6 +200,14 @@ defaults
   timeout server 200s
   default-server inter 10s fastinter 1s downinter 3s error-limit 50
 
+resolvers dns_ipv4
+  nameserver google1 8.8.8.8:53
+  nameserver google2 8.8.4.4:53
+  accepted_payload_size 4096
+  timeout resolve 1s
+  timeout retry   1s
+  hold valid 10s
+
 listen stats
   bind *:8199
   mode http
@@ -213,7 +221,7 @@ frontend fe_chat_${WA_CHAT_PORT}
   default_backend wa_chat
 
 backend wa_chat
-  default-server check inter 60000 observe layer4 send-proxy
+  default-server check inter 60000 observe layer4 send-proxy resolvers dns_ipv4 resolve-prefer ipv4
   server g_whatsapp_net g.whatsapp.net:5222
 
 frontend fe_media_${WA_MEDIA_PORT}
@@ -223,7 +231,7 @@ frontend fe_media_${WA_MEDIA_PORT}
   default_backend wa_media
 
 backend wa_media
-  default-server check inter 60000 observe layer4
+  default-server check inter 60000 observe layer4 resolvers dns_ipv4 resolve-prefer ipv4
   server whatsapp_net whatsapp.net:443
 HAEOF
 
@@ -267,7 +275,9 @@ services:
 COMPOSEEOF
 
 # ── Telegram config.toml ──
-TG_SECRET=$(mtg generate-secret --hex "$TG_DOMAIN")
+# FakeTLS SNI: используем надёжный публичный домен вместо своего,
+# чтобы mtg мог его проверить (свой домен не имеет HTTPS на 443)
+TG_SECRET=$(mtg generate-secret --hex "www.google.com")
 cat > /opt/messenger-proxy/telegram/config.toml <<TGEOF
 secret   = "${TG_SECRET}"
 bind-to  = "0.0.0.0:${TG_PORT}"
