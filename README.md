@@ -5,15 +5,7 @@
 ## Быстрый старт
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/World-Face/messenger-proxy/main/install.sh | sudo bash
-```
-
-Или клонировать и запустить вручную:
-
-```bash
-git clone https://github.com/World-Face/messenger-proxy.git
-cd messenger-proxy
-sudo bash install.sh
+sudo bash <(curl -sSL https://raw.githubusercontent.com/World-Face/messenger-proxy/main/install.sh)
 ```
 
 ## Что спросит установщик
