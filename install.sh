@@ -283,9 +283,9 @@ services:
 COMPOSEEOF
 
 # ── Telegram config.toml ──
-# FakeTLS SNI: используем надёжный публичный домен вместо своего,
-# чтобы mtg мог его проверить (свой домен не имеет HTTPS на 443)
-TG_SECRET=$(mtg generate-secret --hex "www.google.com")
+# FakeTLS SNI: используем домен пользователя — он резолвится в IPv4 сервера,
+# фронтинг-чек даст быстрый "connection refused" вместо IPv6-таймаута
+TG_SECRET=$(mtg generate-secret --hex "$TG_DOMAIN")
 cat > /opt/messenger-proxy/telegram/config.toml <<TGEOF
 secret   = "${TG_SECRET}"
 bind-to  = "0.0.0.0:${TG_PORT}"
@@ -350,6 +350,11 @@ Type=simple
 ExecStart=/usr/local/bin/mtg run /opt/messenger-proxy/telegram/config.toml
 Restart=always
 RestartSec=5
+User=nobody
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/messenger-proxy/telegram/config.toml
 
 [Install]
 WantedBy=multi-user.target
