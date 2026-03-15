@@ -5,7 +5,7 @@
 ## Быстрый старт
 
 ```bash
-sudo bash <(curl -sSL https://raw.githubusercontent.com/World-Face/messenger-proxy/main/install.sh)
+curl -sSL https://raw.githubusercontent.com/World-Face/messenger-proxy/main/install.sh -o /tmp/install.sh && sudo bash /tmp/install.sh
 ```
 
 ## Что спросит установщик
