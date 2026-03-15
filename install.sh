@@ -86,15 +86,23 @@ read -rp "  Продолжить установку? (y/n): " CONFIRM
 [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]] && echo "  Отменено." && exit 0
 
 # ─── 1. Системные зависимости ────────────────────────────────
-step "1/7" "Установка системных зависимостей"
+step "1/8" "Установка системных зависимостей"
 apt-get update -qq
 apt-get install -y -qq \
   ca-certificates curl gnupg lsb-release \
   openssl netcat-openbsd git 2>/dev/null
 ok "Зависимости установлены"
 
-# ─── 2. Docker ───────────────────────────────────────────────
-step "2/7" "Установка Docker"
+# ─── 2. Отключение IPv6 (часто не работает у VPS-провайдеров) ──
+step "2/8" "Отключение нерабочего IPv6"
+sysctl -w net.ipv6.conf.all.disable_ipv6=1     >/dev/null 2>&1 || true
+sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null 2>&1 || true
+grep -q "disable_ipv6" /etc/sysctl.conf 2>/dev/null || \
+  echo -e "\nnet.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1" >> /etc/sysctl.conf
+ok "IPv6 отключён (принудительно используется IPv4)"
+
+# ─── 3. Docker ───────────────────────────────────────────────
+step "3/8" "Установка Docker"
 if command -v docker &>/dev/null; then
   ok "Docker уже установлен ($(docker --version | cut -d' ' -f3 | tr -d ','))"
 else
@@ -113,7 +121,7 @@ else
 fi
 
 # ─── 3. mtg (Telegram MTProto proxy) ─────────────────────────
-step "3/7" "Установка mtg (Telegram proxy)"
+step "4/8" "Установка mtg (Telegram proxy)"
 if command -v mtg &>/dev/null; then
   ok "mtg уже установлен ($(mtg --version | head -1))"
 else
@@ -130,7 +138,7 @@ else
 fi
 
 # ─── 4. Директории и конфиги ─────────────────────────────────
-step "4/7" "Создание конфигурации"
+step "5/8" "Создание конфигурации"
 mkdir -p /opt/messenger-proxy/whatsapp/src
 mkdir -p /opt/messenger-proxy/whatsapp/ssl
 mkdir -p /opt/messenger-proxy/telegram/proxy-data
@@ -295,13 +303,13 @@ TGEOF
 ok "Конфигурации созданы"
 
 # ─── 5. Сборка WhatsApp образа ───────────────────────────────
-step "5/7" "Сборка WhatsApp proxy (HAProxy + SSL)"
+step "6/8" "Сборка WhatsApp proxy (HAProxy + SSL)"
 info "Собираем Docker образ..."
 docker compose -f /opt/messenger-proxy/whatsapp/docker-compose.yml build --quiet
 ok "Docker образ собран"
 
 # ─── 6. Открытие портов ──────────────────────────────────────
-step "6/7" "Открытие портов в firewall"
+step "7/8" "Открытие портов в firewall"
 for PORT in "$WA_CHAT_PORT" "$WA_MEDIA_PORT" "$TG_PORT"; do
   iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null || true
   ufw allow "$PORT/tcp" 2>/dev/null || true
@@ -309,7 +317,7 @@ done
 ok "Порты ${WA_CHAT_PORT}, ${WA_MEDIA_PORT}, ${TG_PORT} открыты"
 
 # ─── 7. Systemd сервисы ──────────────────────────────────────
-step "7/7" "Создание systemd сервисов и запуск"
+step "8/8" "Создание systemd сервисов и запуск"
 
 # WhatsApp systemd unit
 cat > /etc/systemd/system/whatsapp-proxy.service <<WAUNIT
